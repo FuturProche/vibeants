@@ -634,31 +634,19 @@
     class AudioEngine {
       constructor() {
         this.ctx = null;
-        this.ambient = null;
       }
       _ensure() {
         if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         return this.ctx;
       }
-      startAmbient() {
+      resume() {
         const ctx = this._ensure();
-        if (this.ambient) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = 28; // low hum
-        gain.gain.value = 0.02;
-        osc.connect(gain).connect(ctx.destination);
-        osc.start();
-        this.ambient = { osc, gain };
-      }
-      stopAmbient() {
-        if (!this.ambient) return;
-        try { this.ambient.osc.stop(); } catch (e) {}
-        this.ambient.gain.disconnect();
-        this.ambient = null;
+        if (ctx && ctx.state === "suspended") {
+          try { ctx.resume(); } catch (e) {}
+        }
       }
       playClick(freq = 440, durMs = 60) {
+        this.resume();
         const ctx = this._ensure();
         const t = ctx.currentTime;
         const osc = ctx.createOscillator();
@@ -672,6 +660,7 @@
         osc.stop(t + durMs / 1000);
       }
       playChime() {
+        this.resume();
         const ctx = this._ensure();
         const t = ctx.currentTime;
         const notes = [660, 880, 1320];
