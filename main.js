@@ -289,12 +289,15 @@
           const dx = world.nest.x - this.x;
           const dy = world.nest.y - this.y;
           this.angle = Math.atan2(dy, dx);
+          // sound: picked up food
+          world.__onPick && world.__onPick();
         }
       } else {
         // deliver to nest if near
         if (distanceCells(ix, iy, world.nest.x, world.nest.y) <= NEST_RADIUS_CELLS) {
           this.hasFood = false;
           world.deliverFood();
+          world.__onDeliver && world.__onDeliver();
         }
       }
     }
@@ -501,6 +504,13 @@
       document.getElementById("toggle-food-pher").addEventListener("change", (e) => {
         this.world.flags.showFoodPheromone = e.target.checked;
       });
+      // Sound toggle
+      const soundToggle = document.getElementById("toggle-sound");
+      if (soundToggle) {
+        soundToggle.addEventListener("change", (e) => {
+          this.state.soundEnabled = e.target.checked;
+        });
+      }
       // home pheromone toggle removed
 
       // Sliders
@@ -560,14 +570,17 @@
       switch (this.activeTool) {
         case TOOL.FOOD: {
           this.world.addFood(cellX, cellY, this.state.foodSize);
+          this.state.audio && this.state.soundEnabled && this.state.audio.playClick(440);
           break;
         }
         case TOOL.WALL: {
           this.world.setWall(cellX, cellY, true, 2);
+          this.state.audio && this.state.soundEnabled && this.state.audio.playClick(260);
           break;
         }
         case TOOL.ERASE: {
           this.world.setWall(cellX, cellY, false, 2);
+          this.state.audio && this.state.soundEnabled && this.state.audio.playClick(200);
           break;
         }
         // spray removed
@@ -588,6 +601,9 @@
       // Recompute grid-dependent globals in world by recreating it
       world = new World();
       world.reset(parseInt(document.getElementById("ants-range").value, 10) || INITIAL_ANT_COUNT);
+      // Rewire sound hooks after world recreation
+      world.__onDeliver = () => { if (state.soundEnabled && state.audio) state.audio.playChime(); };
+      world.__onPick = () => { if (state.soundEnabled && state.audio) state.audio.playClick(520, 50); };
     }
 
     applyCanvasSize();
@@ -596,6 +612,8 @@
       running: false,
       speedMultiplier: 1,
       foodSize: 100,
+      soundEnabled: true,
+      audio: null,
     };
 
     const ui = new Interaction(canvas, world, state);
@@ -611,6 +629,70 @@
     const foodRange = document.getElementById("food-range");
     const foodValue = document.getElementById("food-value");
     foodValue.textContent = foodRange.value;
+
+    // ---------- Audio ----------
+    class AudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.ambient = null;
+      }
+      _ensure() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return this.ctx;
+      }
+      startAmbient() {
+        const ctx = this._ensure();
+        if (this.ambient) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 28; // low hum
+        gain.gain.value = 0.02;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        this.ambient = { osc, gain };
+      }
+      stopAmbient() {
+        if (!this.ambient) return;
+        try { this.ambient.osc.stop(); } catch (e) {}
+        this.ambient.gain.disconnect();
+        this.ambient = null;
+      }
+      playClick(freq = 440, durMs = 60) {
+        const ctx = this._ensure();
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.04, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + durMs / 1000);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + durMs / 1000);
+      }
+      playChime() {
+        const ctx = this._ensure();
+        const t = ctx.currentTime;
+        const notes = [660, 880, 1320];
+        notes.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t + i * 0.03);
+          gain.gain.setValueAtTime(0.05, t + i * 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25 + i * 0.03);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(t + i * 0.03);
+          osc.stop(t + 0.25 + i * 0.03);
+        });
+      }
+    }
+
+    state.audio = new AudioEngine();
+    // wire world sound hooks
+    world.__onDeliver = () => { if (state.soundEnabled && state.audio) state.audio.playChime(); };
+    world.__onPick = () => { if (state.soundEnabled && state.audio) state.audio.playClick(520, 50); };
 
     let last = performance.now();
 
