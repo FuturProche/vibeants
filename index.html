@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vibeants — Ant Pheromone Trails</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <h1>Fourmis proches</h1>
+        <div class="subtitle">Une colonie de fourmis pour tester GPT-5</div>
+      </header>
+
+      <section class="controls">
+        <div class="control-row">
+          <button id="btn-play" class="primary">Play</button>
+          <button id="btn-pause">Pause</button>
+          <button id="btn-reset" class="danger">Reset</button>
+          <span class="spacer"></span>
+          <button id="tool-food" class="tool active" title="Click to place food">Place Food</button>
+          <button id="tool-wall" class="tool" title="Drag to draw walls">Draw Wall</button>
+          <button id="tool-erase" class="tool" title="Drag to erase walls">Erase</button>
+          <span class="spacer"></span>
+          <label class="toggle"><input id="toggle-food-pher" type="checkbox" checked /> Show Food Pheromone</label>
+        </div>
+        <div class="control-row">
+          <label>Ants: <input id="ants-range" type="range" min="20" max="600" step="10" value="200" /><span id="ants-value">200</span></label>
+          <label>Speed: <input id="speed-range" type="range" min="0.25" max="3" step="0.25" value="1" /><span id="speed-value">1x</span></label>
+          <label>Food Size: <input id="food-range" type="range" min="10" max="300" step="10" value="100" /><span id="food-value">100</span></label>
+        </div>
+        <div class="tip-text">Tip: Start by placing food. Ants will explore, discover food, and lay pheromone trails back to the nest.</div>
+      </section>
+
+      <main class="canvas-wrap">
+        <canvas id="world" width="1400" height="560"></canvas>
+        <div class="hud">
+          <div>Food delivered: <span id="score">0</span></div>
+          <div>Nest location: center</div>
+        </div>
+      </main>
+
+      <footer class="app-footer">
+        <span>Left-click/drag with the selected tool. Place food, draw walls, and erase to shape the colony's paths.</span>
+      </footer>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+  </html>
+
+
